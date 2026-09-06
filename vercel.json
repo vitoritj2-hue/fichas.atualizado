@@ -1,6 +1,6 @@
 {
   "functions": {
-    "api/db.js": {
+    "db.js": {
       "memory": 128,
       "maxDuration": 10
     }
