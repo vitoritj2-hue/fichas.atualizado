@@ -21,6 +21,23 @@ export default async function handler(req, res) {
       const rows = await sql(`SELECT * FROM ${t} ORDER BY ${ord} ${asc} LIMIT ${lim}`);
       return res.json({ data: rows, error: null });
     }
+    if (action === 'therapistLoad') {
+      // Retorna apenas a CONTAGEM de pacientes ativos por terapeuta.
+      // Nunca expõe dados de pacientes (nome, contato, etc.) — só números.
+      const rows = await sql(`
+        SELECT "therapistId", SUM(cnt)::int AS cnt FROM (
+          SELECT "therapistId", COUNT(*) AS cnt FROM public."fichas_triagem"
+            WHERE "therapistId" IS NOT NULL AND status NOT IN ('finalizado','inativo')
+            GROUP BY "therapistId"
+          UNION ALL
+          SELECT "therapistId", COUNT(*) AS cnt FROM public."fichas_casal"
+            WHERE "therapistId" IS NOT NULL AND status NOT IN ('finalizado','inativo')
+            GROUP BY "therapistId"
+        ) combined
+        GROUP BY "therapistId"
+      `);
+      return res.json({ data: rows, error: null });
+    }
     if (action === 'insert') {
       const t = sanitizeTable(table);
       const keys = Object.keys(data);
