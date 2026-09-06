@@ -368,9 +368,6 @@ tr:hover td{background:rgba(255,255,255,.015)}
 .et-tag{font-family:'DM Sans',sans-serif;background:rgba(45,212,170,.08);color:#2dd4aa;border-radius:50px;padding:3px 11px;font-size:.68rem;font-weight:500;border:1px solid rgba(45,212,170,.2)}
 .et-choose-btn{font-family:'DM Sans',sans-serif;background:linear-gradient(135deg,#5b9cf6,#2dd4aa);color:#fff;border:none;padding:11px 0;border-radius:50px;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .3s;margin-top:6px}
 .et-choose-btn:hover{transform:translateY(-1px);box-shadow:0 8px 28px rgba(45,212,170,.3)}
-.et-skip{background:#0d1628;border:1px dashed rgba(255,255,255,.15);border-radius:16px;padding:16px 18px;cursor:pointer;transition:all .25s;display:flex;align-items:center;gap:12px;margin:0 24px}
-.et-skip:hover{border-color:#5b9cf6}
-.et-footer{padding:18px 24px;border-top:1px solid rgba(255,255,255,.07);display:flex;gap:10px;flex-shrink:0;background:#070d1a}
 .et-loading{text-align:center;padding:40px;color:#8898bb;font-family:'DM Sans',sans-serif;font-size:.85rem}
 .et-filters{padding:0 24px 4px;display:flex;flex-direction:column;gap:14px}
 .et-search-wrap{position:relative;max-width:340px}
@@ -482,12 +479,10 @@ tr:hover td{background:rgba(255,255,255,.015)}
 </div>
 
 <!-- TRIAGEM -->
-<!-- TRIAGEM -->
 
   <div class="screen" id="screen-escolha-terapeuta">
     <div class="triagem-header">
       <button class="back-btn" onclick="voltarDaEscolha()">←</button>
-      <h2>Escolha seu Terapeuta</h2>
       <span class="tipo-pill" id="et-tipo-pill">Individual</span>
     </div>
     <div class="et-eyebrow">Sua Jornada de Cuidado</div>
@@ -897,16 +892,26 @@ async function carregarTerapeutas(){
   const grid=document.getElementById('et-grid');
   grid.innerHTML='<div class="et-loading">⏳ Carregando terapeutas...</div>';
   try{
-    const r=await fetch('/api/db',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'select',table:'terapeutas',orderField:'nome',order:'asc'})});
-    const{data,error}=await r.json();
+    const [rTerapeutas,rCargas]=await Promise.all([
+      fetch('/api/db',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'select',table:'terapeutas',orderField:'nome',order:'asc'})}),
+      fetch('/api/db',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'therapistLoad'})})
+    ]);
+    const{data,error}=await rTerapeutas.json();
     if(error||!data){grid.innerHTML='<div class="et-loading">Não foi possível carregar os terapeutas.</div>';return;}
+    let cargaPorId={};
+    try{
+      const cargaJson=await rCargas.json();
+      if(cargaJson&&cargaJson.data){cargaJson.data.forEach(c=>{cargaPorId[c.therapistId]=parseInt(c.cnt)||0;});}
+    }catch(e){/* se falhar, segue sem ranking (carga=0 pra todos) */}
     const ativos=data.filter(t=>!t.bloqueado&&t.nome&&t.nivel&&String(t.nivel)!=='0');
     if(!ativos.length){grid.innerHTML='<div class="et-loading">Nenhum terapeuta disponível no momento.</div>';return;}
     todosTerapeutas=ativos.map(t=>{
       let esp=[];
       try{esp=Array.isArray(t.especialidades)?t.especialidades:(typeof t.especialidades==='string'?JSON.parse(t.especialidades):[]); }catch(e){}
-      return Object.assign({},t,{_esp:esp});
+      return Object.assign({},t,{_esp:esp,_carga:cargaPorId[t.id]||0});
     });
+    // Ranking justo: menos pacientes ativos primeiro, mais pacientes por último
+    todosTerapeutas.sort((a,b)=>a._carga-b._carga||a.nome.localeCompare(b.nome,'pt-BR'));
     montarFiltrosTags();
     renderTerapeutas();
   }catch(e){grid.innerHTML='<div class="et-loading">Erro ao carregar terapeutas.</div>';console.error(e);}
@@ -916,9 +921,10 @@ function montarFiltrosTags(){
   const wrap=document.getElementById('et-tag-filters');
   const todasTags=new Set();
   todosTerapeutas.forEach(t=>t._esp.forEach(e=>todasTags.add(e)));
-  if(!todasTags.size){wrap.innerHTML='';return;}
-  const chips=['<button class="et-filter-chip active" data-tag="">Todos</button>']
-    .concat([...todasTags].sort().map(tag=>'<button class="et-filter-chip" data-tag="'+tag+'">'+tag+'</button>'));
+  if(!todasTags.size){wrap.innerHTML='';activeTagFilter=null;return;}
+  if(activeTagFilter&&!todasTags.has(activeTagFilter))activeTagFilter=null;
+  const chips=['<button class="et-filter-chip'+(!activeTagFilter?' active':'')+'" data-tag="">Todos</button>']
+    .concat([...todasTags].sort().map(tag=>'<button class="et-filter-chip'+(activeTagFilter===tag?' active':'')+'" data-tag="'+tag+'">'+tag+'</button>'));
   wrap.innerHTML=chips.join('');
   wrap.querySelectorAll('.et-filter-chip').forEach(btn=>{
     btn.onclick=()=>{
@@ -1032,4 +1038,4 @@ function closeCfgPanel(){document.getElementById('cfg-panel').classList.remove('
 
 </script>
 </body>
-</html> 
+</html>
