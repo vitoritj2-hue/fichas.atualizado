@@ -365,6 +365,9 @@ tr:hover td{background:rgba(255,255,255,.015)}
 .et-info h4{font-family:'Cormorant Garamond',serif;font-size:1.35rem;font-weight:600;color:#eef2ff;margin-bottom:2px;line-height:1.2}
 .et-info p{font-family:'DM Sans',sans-serif;font-size:.72rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:#e8c97a}
 .et-bio{font-family:'DM Sans',sans-serif;font-size:.82rem;color:#8898bb;line-height:1.6;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.et-bio.et-bio-expanded{display:block;-webkit-line-clamp:unset;overflow:visible}
+.et-bio-toggle{font-family:'DM Sans',sans-serif;background:none;border:none;color:#5b9cf6;font-size:.74rem;font-weight:600;cursor:pointer;padding:0;margin-top:-4px;text-align:left}
+.et-bio-toggle:hover{color:#2dd4aa}
 .et-tags{display:flex;flex-wrap:wrap;gap:6px}
 .et-tag{font-family:'DM Sans',sans-serif;background:rgba(45,212,170,.08);color:#2dd4aa;border-radius:50px;padding:3px 11px;font-size:.68rem;font-weight:500;border:1px solid rgba(45,212,170,.2)}
 .et-choose-btn{font-family:'DM Sans',sans-serif;background:linear-gradient(135deg,#5b9cf6,#2dd4aa);color:#fff;border:none;padding:11px 0;border-radius:50px;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .3s;margin-top:6px}
@@ -936,15 +939,31 @@ function renderTerapeutas(){
     div.innerHTML='<div class="et-photo-wrap">'+foto+'</div>'
       +'<div class="et-card-body">'
       +'<div class="et-info"><h4>'+t.nome+'</h4><p>'+(t.esp||t.formacao||'Terapeuta')+'</p></div>'
-      +(t.bio?'<div class="et-bio">'+t.bio+'</div>':'')
+      +(t.bio?'<div class="et-bio">'+t.bio+'</div><button class="et-bio-toggle" style="display:none">Ver mais</button>':'')
       +(tags?'<div class="et-tags">'+tags+'</div>':'')
       +'<button class="et-choose-btn">Escolher este terapeuta ›</button>'
       +'</div>';
     div.querySelector('.et-choose-btn').onclick=(e)=>{e.stopPropagation();confirmarEscolhaTerapeuta(t.id,t.nome);};
+    const toggleBtn=div.querySelector('.et-bio-toggle');
+    if(toggleBtn){
+      toggleBtn.onclick=(e)=>{
+        e.stopPropagation();
+        const bioEl=div.querySelector('.et-bio');
+        const expandido=bioEl.classList.toggle('et-bio-expanded');
+        toggleBtn.textContent=expandido?'Ver menos':'Ver mais';
+      };
+    }
     return div;
   });
   grid.innerHTML='';
   cards.forEach(c=>grid.appendChild(c));
+  cards.forEach(div=>{
+    const bioEl=div.querySelector('.et-bio');
+    const toggleBtn=div.querySelector('.et-bio-toggle');
+    if(bioEl&&toggleBtn&&bioEl.scrollHeight>bioEl.clientHeight+1){
+      toggleBtn.style.display='block';
+    }
+  });
   if(selectedTherapistId){
     const sel=document.getElementById('et-card-'+selectedTherapistId);
     if(sel) sel.classList.add('selected');
