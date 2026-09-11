@@ -354,10 +354,10 @@ tr:hover td{background:rgba(255,255,255,.015)}
 .et-header h2{font-family:'Cormorant Garamond',serif;font-size:1.9rem;font-weight:400;color:#eef2ff;margin-bottom:8px;letter-spacing:-.01em}
 .et-header p{font-family:'DM Sans',sans-serif;font-size:.82rem;color:#8898bb;margin-bottom:20px;font-weight:400}
 .et-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:22px;padding:4px 24px 24px;overflow-y:auto}
-.et-card{background:#111d33;border:1px solid rgba(255,255,255,.08);border-radius:20px;cursor:pointer;transition:all .35s cubic-bezier(.22,1,.36,1);display:flex;flex-direction:column;overflow:hidden;position:relative}
+.et-card{background:#111d33;border:1px solid rgba(255,255,255,.08);border-top:3px solid var(--tc,transparent);border-radius:20px;cursor:pointer;transition:all .35s cubic-bezier(.22,1,.36,1);display:flex;flex-direction:column;overflow:hidden;position:relative}
 .et-card:hover{border-color:rgba(255,255,255,.18);transform:translateY(-6px);box-shadow:0 24px 60px rgba(0,0,0,.45)}
-.et-card.selected{border-color:#2dd4aa;box-shadow:0 0 0 1px #2dd4aa,0 24px 60px rgba(45,212,170,.18)}
-.et-photo-wrap{width:100%;aspect-ratio:4/5;background:linear-gradient(135deg,#1e3a5f,#1a4a3a);position:relative;overflow:hidden;flex-shrink:0}
+.et-card.selected{border-color:var(--tc,#2dd4aa);box-shadow:0 0 0 1px var(--tc,#2dd4aa),0 24px 60px rgba(45,212,170,.18)}
+.et-photo-wrap{width:100%;aspect-ratio:4/5;background:linear-gradient(135deg,var(--tc,#1e3a5f),#0d1628);position:relative;overflow:hidden;flex-shrink:0}
 .et-photo-wrap img{width:100%;height:100%;object-fit:cover;display:block}
 .et-photo-wrap .et-initials{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:3.4rem;font-weight:600;color:#fff}
 .et-photo-fade{position:absolute;left:0;right:0;bottom:0;height:60%;background:linear-gradient(to top,#111d33 0%,rgba(17,29,51,.55) 45%,transparent 100%);pointer-events:none}
@@ -370,7 +370,7 @@ tr:hover td{background:rgba(255,255,255,.015)}
 .et-bio-toggle:hover{color:#2dd4aa}
 .et-tags{display:flex;flex-wrap:wrap;gap:6px}
 .et-tag{font-family:'DM Sans',sans-serif;background:rgba(45,212,170,.08);color:#2dd4aa;border-radius:50px;padding:3px 11px;font-size:.68rem;font-weight:500;border:1px solid rgba(45,212,170,.2)}
-.et-choose-btn{font-family:'DM Sans',sans-serif;background:linear-gradient(135deg,#5b9cf6,#2dd4aa);color:#fff;border:none;padding:11px 0;border-radius:50px;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .3s;margin-top:6px}
+.et-choose-btn{font-family:'DM Sans',sans-serif;background:linear-gradient(135deg,var(--tc,#5b9cf6),#2dd4aa);color:#fff;border:none;padding:11px 0;border-radius:50px;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .3s;margin-top:6px}
 .et-choose-btn:hover{transform:translateY(-1px);box-shadow:0 8px 28px rgba(45,212,170,.3)}
 .et-loading{text-align:center;padding:40px;color:#8898bb;font-family:'DM Sans',sans-serif;font-size:.85rem}
 .et-filters{padding:0 24px 4px;display:flex;flex-direction:column;gap:14px}
@@ -920,7 +920,7 @@ function renderTerapeutas(){
   const termo=(document.getElementById('et-search')?.value||'').trim().toLowerCase();
   const filtrados=todosTerapeutas.filter(t=>{
     if(!termo) return true;
-    const campos=[t.nome,t.esp,t.formacao,t.bio].filter(Boolean).join(' ').toLowerCase();
+    const campos=[t.nome,t.nomeExibicao,t.esp,t.formacao,t.bio].filter(Boolean).join(' ').toLowerCase();
     const campoTags=t._esp.join(' ').toLowerCase();
     return campos.includes(termo)||campoTags.includes(termo);
   });
@@ -928,22 +928,24 @@ function renderTerapeutas(){
   empty.style.display='none';
   const cards=filtrados.map(t=>{
     const esp=t._esp;
+    const nomeExibido=(t.nomeExibicao&&t.nomeExibicao.trim())?t.nomeExibicao.trim():t.nome;
     const tags=esp.slice(0,3).map(e=>'<span class="et-tag">'+e+'</span>').join('');
-    const initials=t.nome.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
-    const foto=t.foto?'<img src="'+t.foto+'" alt="'+t.nome+'"><div class="et-photo-fade"></div>'
+    const initials=nomeExibido.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+    const foto=t.foto?'<img src="'+t.foto+'" alt="'+nomeExibido+'"><div class="et-photo-fade"></div>'
       :'<div class="et-initials">'+initials+'</div>';
     const div=document.createElement('div');
     div.className='et-card';
     div.id='et-card-'+t.id;
-    div.onclick=()=>selecionarTerapeutaCard(t.id,t.nome);
+    if(t.corCard) div.style.setProperty('--tc',t.corCard);
+    div.onclick=()=>selecionarTerapeutaCard(t.id,nomeExibido);
     div.innerHTML='<div class="et-photo-wrap">'+foto+'</div>'
       +'<div class="et-card-body">'
-      +'<div class="et-info"><h4>'+t.nome+'</h4><p>'+(t.esp||t.formacao||'Terapeuta')+'</p></div>'
+      +'<div class="et-info"><h4>'+nomeExibido+'</h4><p>'+(t.esp||t.formacao||'Terapeuta')+'</p></div>'
       +(t.bio?'<div class="et-bio">'+t.bio+'</div><button class="et-bio-toggle" style="display:none">Ver mais</button>':'')
       +(tags?'<div class="et-tags">'+tags+'</div>':'')
       +'<button class="et-choose-btn">Escolher este terapeuta ›</button>'
       +'</div>';
-    div.querySelector('.et-choose-btn').onclick=(e)=>{e.stopPropagation();confirmarEscolhaTerapeuta(t.id,t.nome);};
+    div.querySelector('.et-choose-btn').onclick=(e)=>{e.stopPropagation();confirmarEscolhaTerapeuta(t.id,nomeExibido);};
     const toggleBtn=div.querySelector('.et-bio-toggle');
     if(toggleBtn){
       toggleBtn.onclick=(e)=>{
